@@ -718,6 +718,8 @@ void migrate_page_states(struct page *newpage, struct page *page)
 		SetPageActive(newpage);
 	} else if (TestClearPageUnevictable(page))
 		SetPageUnevictable(newpage);
+	if (PageShadowbit(page))
+		SetPageShadowbit(newpage);
 	if (PageWorkingset(page))
 		SetPageWorkingset(newpage);
 	if (PageChecked(page))
@@ -3913,7 +3915,7 @@ static int __nomad_copy_and_remap(struct page *page, struct page *newpage,
 		}
 	}
 
-	if (copy_and_remap) {
+	if ((copy_and_remap) && !PageShadowbit(page)) {
 		int tmp_err = 0;
 		*go_cpy_remap = true;
 
@@ -3934,6 +3936,7 @@ static int __nomad_copy_and_remap(struct page *page, struct page *newpage,
 				page,
 				rc == MIGRATEPAGE_SUCCESS ? newpage : page,
 				false);
+		ClearPageShadowbit(newpage);
 	}
 
 out_unlock_both:

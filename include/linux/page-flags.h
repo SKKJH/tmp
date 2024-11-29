@@ -141,6 +141,7 @@ enum pageflags {
 	PG_demoted,
 	PG_numa_queued, /* The page is queued for NUMA promotion */
 	PG_shadowed,
+	PG_shadowbit,
 #endif
 #endif
 	__NR_PAGEFLAGS,
@@ -460,6 +461,10 @@ TESTPAGEFLAG(Shadowed, shadowed, PF_NO_TAIL)
 SETPAGEFLAG(Shadowed, shadowed, PF_NO_TAIL)
 TESTCLEARFLAG(Shadowed, shadowed, PF_NO_TAIL)
 CLEARPAGEFLAG(Shadowed, shadowed, PF_NO_TAIL)
+TESTPAGEFLAG(Shadowbit, shadowbit, PF_NO_TAIL)
+SETPAGEFLAG(Shadowbit, shadowbit, PF_NO_TAIL)
+TESTCLEARFLAG(Shadowbit, shadowbit, PF_NO_TAIL)
+CLEARPAGEFLAG(Shadowbit, shadowbit, PF_NO_TAIL)
 #endif
 
 /*
