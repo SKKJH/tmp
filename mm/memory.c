@@ -3225,7 +3225,6 @@ static vm_fault_t do_wp_page(struct vm_fault *vmf)
 			unlock_page(page);
 			goto copy;
 		}
-
 		SetPageShadowbit(page);
 		/*
 		 * Ok, we've got the only map reference, and the only

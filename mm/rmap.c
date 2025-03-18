@@ -985,6 +985,54 @@ static bool invalid_mkclean_vma(struct vm_area_struct *vma, void *arg)
 	return true;
 }
 
+static bool check_pte_dirty(struct page *page, struct vm_area_struct *vma,
+                            unsigned long addr, void *arg)
+{
+	struct page_vma_mapped_walk pvmw = {
+		.page = page,
+		.vma = vma,
+		.address = addr,
+		.flags = PVMW_SYNC,
+	};
+
+	VM_BUG_ON_PAGE(PageTail(page), page);
+
+	while (page_vma_mapped_walk(&pvmw)) {
+		if (pte_dirty(*pvmw.pte)) {
+			page_vma_mapped_walk_done(&pvmw);
+			return false; // dirty 발견됨
+		}
+	}
+	page_vma_mapped_walk_done(&pvmw);
+	return true; // 전부 clean
+}
+
+static bool nomad_rmap_one_dirty_check(struct page *page, struct vm_area_struct *vma, unsigned long addr, void *arg)
+{
+	bool *dirty_found = (bool *)arg;
+	
+	if (!check_pte_dirty(page, vma, addr, NULL)) {
+		*dirty_found = true;
+		return false;
+	}
+	return true;
+}
+
+int page_mkcleanall(struct page *page)
+{
+        int cleaned = 0;
+        struct rmap_walk_control rwc = {
+                .arg = (void *)&cleaned,
+                .rmap_one = page_mkclean_one,
+                .invalid_vma = invalid_mkclean_vma,
+        };
+
+        rmap_walk(page, &rwc);
+
+        return cleaned;
+}
+EXPORT_SYMBOL_GPL(page_mkcleanall);
+
 int page_mkclean(struct page *page)
 {
 	int cleaned = 0;
@@ -1009,6 +1057,22 @@ int page_mkclean(struct page *page)
 	return cleaned;
 }
 EXPORT_SYMBOL_GPL(page_mkclean);
+
+int page_has_dirty_pte(struct page *page)
+{
+	int dirty_found = 0;
+
+	struct rmap_walk_control rwc = {
+		.rmap_one = nomad_rmap_one_dirty_check,
+		.arg = (void *)&dirty_found,
+		.anon_lock = page_lock_anon_vma_read,
+	};
+
+	rmap_walk(page, &rwc);
+
+	return dirty_found;
+}
+EXPORT_SYMBOL_GPL(page_has_dirty_pte);
 
 /**
  * page_move_anon_rmap - move a page to our anon_vma

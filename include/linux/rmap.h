@@ -236,8 +236,13 @@ unsigned long page_address_in_vma(struct page *, struct vm_area_struct *);
  * (and since clean PTEs should also be readonly, write protects them too)
  *
  * returns the number of cleaned PTEs.
- */
+*/
+
+int page_mkcleanall(struct page *page);
+
 int page_mkclean(struct page *);
+
+int page_has_dirty_pte(struct page *page);
 
 /*
  * called in munlock()/munmap() path to check for other vmas holding

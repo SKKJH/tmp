@@ -719,7 +719,7 @@ void migrate_page_states(struct page *newpage, struct page *page)
 	} else if (TestClearPageUnevictable(page))
 		SetPageUnevictable(newpage);
 	if (PageShadowbit(page))
-		SetPageShadowbit(newpage);
+ 		SetPageShadowbit(newpage);
 	if (PageWorkingset(page))
 		SetPageWorkingset(newpage);
 	if (PageChecked(page))
@@ -3936,7 +3936,9 @@ static int __nomad_copy_and_remap(struct page *page, struct page *newpage,
 				page,
 				rc == MIGRATEPAGE_SUCCESS ? newpage : page,
 				false);
+		
 		ClearPageShadowbit(newpage);
+		//page_mkclean(newpage);
 	}
 
 out_unlock_both:
@@ -4553,6 +4555,7 @@ static int demotion_unmap_and_move(new_page_t get_new_page,
 		.made_writable = false,
 		.shadow_page = NULL,
 	};
+	int dirty_found = 0;
 
 	if (!thp_migration_supported() && PageTransHuge(page))
 		return -ENOSYS;
@@ -4606,7 +4609,17 @@ use_shadowpage:
 	}
 
 	if (rc == MIGRATEPAGE_SUCCESS)
+	{
+		dirty_found = page_has_dirty_pte(page);
+
+		if ((dirty_found) && (!PageShadowbit(page)))
+		{
+			printk("this code is worked!!\r\n");
+			SetPageShadowbit(newpage);
+		}
+
 		set_page_owner_migrate_reason(newpage, reason);
+	}
 
 out:
 	if (rc != -EAGAIN) {

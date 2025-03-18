@@ -3213,6 +3213,12 @@ unsigned long wp_shared_mapping_range(struct address_space *mapping,
 #endif
 
 extern int sysctl_nr_trim_pages;
+extern unsigned long numa_kswap_lack;
+extern unsigned long numa_kswap_enough;
+extern unsigned long rmqueue_kswapd_wm;
+extern unsigned long rmqueue_kswapd_tb;
+extern unsigned long slow_path_kswapd_first;
+extern unsigned long slow_path_kswapd_second;
 
 #ifdef CONFIG_PRINTK
 void mem_dump_obj(void *object);

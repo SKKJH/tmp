@@ -188,6 +188,14 @@ static LIST_HEAD(shrinker_list);
 static DECLARE_RWSEM(shrinker_rwsem);
 int demote_scale_factor = 200;
 
+unsigned long numa_kswap_enough = 0;
+unsigned long numa_kswap_lack = 0;
+unsigned long slow_path_kswapd_first = 0;
+unsigned long slow_path_kswapd_second = 0;
+unsigned long rmqueue_kswapd_tb = 0;
+unsigned long rmqueue_kswapd_wm = 0;
+unsigned long kswapd_run_cnt = 0;
+
 #ifdef CONFIG_MEMCG
 static int shrinker_nr_max;
 
@@ -4255,8 +4263,12 @@ static void kswapd_try_to_sleep(pg_data_t *pgdat, int alloc_order, int reclaim_o
 					pgdat->kswapd_failures >= MAX_RECLAIM_RETRIES) {
 				remaining = schedule_timeout(10 * HZ);
 				if (!remaining) {
+					numa_kswap_enough++;
 					pgdat->kswapd_highest_zoneidx = ZONE_MOVABLE;
 					pgdat->kswapd_order = 0;
+				}
+				else {
+					numa_kswap_lack++;
 				}
 			} else
 				schedule();
@@ -4290,6 +4302,7 @@ static int kswapd(void *p)
 	unsigned int alloc_order, reclaim_order;
 	unsigned int highest_zoneidx = MAX_NR_ZONES - 1;
 	pg_data_t *pgdat = (pg_data_t *)p;
+	unsigned long free_pages;
 	struct task_struct *tsk = current;
 	const struct cpumask *cpumask = cpumask_of_node(pgdat->node_id);
 
@@ -4352,8 +4365,14 @@ kswapd_try_sleep:
 		 */
 		trace_mm_vmscan_kswapd_wake(pgdat->node_id, highest_zoneidx,
 						alloc_order);
+
+		free_pages = node_page_state(pgdat, NR_FREE_PAGES);
+		kswapd_run_cnt++;
+		printk("kswapd_cnt(%lu): %lu, numa_enough: %lu, numa_lack: %lu, free_pages: %lu\n",pgdat->node_id ,kswapd_run_cnt, numa_kswap_enough, numa_kswap_lack, free_pages);
+		printk("slow_path first: %lu, sec: %lu, rmqueue_toptier: %lu, rmqueue_watermark: %lu\n",slow_path_kswapd_first, slow_path_kswapd_second, rmqueue_kswapd_tb, rmqueue_kswapd_wm);
 		reclaim_order = balance_pgdat(pgdat, alloc_order,
 						highest_zoneidx);
+
 		if (reclaim_order < alloc_order)
 			goto kswapd_try_sleep;
 	}

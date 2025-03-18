@@ -3570,8 +3570,11 @@ out:
 	if (test_bit(ZONE_BOOSTED_WATERMARK, &zone->flags)) {
 		clear_bit(ZONE_BOOSTED_WATERMARK, &zone->flags);
 		wakeup_kswapd(zone, 0, 0, zone_idx(zone));
-	} else if (!pgdat_toptier_balanced(zone->zone_pgdat, order, zone_idx(zone)))
+		rmqueue_kswapd_wm++;
+	} else if (!pgdat_toptier_balanced(zone->zone_pgdat, order, zone_idx(zone))) {
 		wakeup_kswapd(zone, 0, 0, zone_idx(zone));
+		rmqueue_kswapd_tb++;
+	}
 
 	VM_BUG_ON_PAGE(page && bad_range(zone, page), page);
 	return page;
@@ -4753,8 +4756,10 @@ retry_cpuset:
 	if (!ac->preferred_zoneref->zone)
 		goto nopage;
 
-	if (alloc_flags & ALLOC_KSWAPD)
+	if (alloc_flags & ALLOC_KSWAPD) {
 		wake_all_kswapds(order, gfp_mask, ac);
+		slow_path_kswapd_first++;
+	}
 
 	/*
 	 * The adjusted alloc_flags might result in immediate success, so try
@@ -4821,8 +4826,10 @@ retry_cpuset:
 
 retry:
 	/* Ensure kswapd doesn't accidentally go to sleep as long as we loop */
-	if (alloc_flags & ALLOC_KSWAPD)
+	if (alloc_flags & ALLOC_KSWAPD) {
 		wake_all_kswapds(order, gfp_mask, ac);
+		slow_path_kswapd_second++;
+	}
 
 	reserve_flags = __gfp_pfmemalloc_flags(gfp_mask);
 	if (reserve_flags)
